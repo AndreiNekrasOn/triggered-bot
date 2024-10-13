@@ -1,4 +1,4 @@
-package org.andnekon.img_responder.bot;
+package org.andnekon.img_responder.bot.controller;
 
 import org.andnekon.img_responder.bot.service.action.ActionService;
 import org.andnekon.img_responder.bot.service.response.MessageResponder;
@@ -33,7 +33,14 @@ public class ArchivistBot implements SpringLongPollingBot, LongPollingSingleThre
         telegramClient = new OkHttpTelegramClient(getBotToken());
     }
 
+    /**
+      * Structured logging, prepends chatId.
+      * @param format Format string
+      * @param chatId Chat identifier
+      * @param args Remaining arguments for {@code String.format}
+      */
     void log(String format, long chatId, Object... args) {
+        // TODO: move to utils
         format = "[chat %d] " + format;
         if (args.length == 0) {
             logger.info(String.format(format, chatId));
@@ -51,25 +58,32 @@ public class ArchivistBot implements SpringLongPollingBot, LongPollingSingleThre
     public void consume(Update update) {
         if (update.hasMessage() && update.getMessage().hasText()) {
             Message message = update.getMessage();
-            if (message.isCommand()) {
-                log("Recieved command", message.getChatId());
-                processCommand(message);
+            long chatId = message.getChatId();
+            String messageText = message.getText();
+            if (!isChatAllowed(chatId)) {
+                log("Chat not allowed", chatId);
                 return;
             }
-            processReply(message);
+            if (message.isCommand()) {
+                log("Recieved command", message.getChatId());
+                processCommand(chatId, messageText);
+                return;
+            }
+            processReply(chatId, messageText);
         }
     }
 
-    private void processReply(Message message) {
-        long chatId = message.getChatId();
-        ResponseType responseType = getResponseType(message.getText());
-        if (!isChatAllowed(chatId)) {
-            log("Chat not allowed", chatId);
-            return;
-        }
-        log("Chat allowed %s", chatId, responseType.toString());
+    /**
+      * Replies to message based on the triggers specifed by created actions
+      * or ignores message.
+      * @param chatId Chat identifier
+      * @param messageText Recieved text
+      */
+    private void processReply(long chatId, String messageText) {
+        ResponseType responseType = getResponseType(messageText);
+        log("Replying with responce type %s", chatId, responseType.toString());
         MessageResponder responder = MessageResponderFactory.getResponder(
-                telegramClient, message.getChatId(), responseType);
+                telegramClient, chatId, responseType);
         try {
             responder.execute();
         } catch (TelegramApiException e) {
@@ -77,11 +91,15 @@ public class ArchivistBot implements SpringLongPollingBot, LongPollingSingleThre
         }
     }
 
-    private void processCommand(Message message) {
-        String[] commandText = message.getText().split(" ", 2);
+    /**
+      * Controller for the defined commands
+      * @param chatId Chat identifier
+      * @param messageText Recieved text
+      */
+    private void processCommand(long chatId, String messageText) {
+        String[] commandText = messageText.split(" ", 2);
         String command = commandText[0];
         String text = commandText.length > 1 ? commandText[1] : "";
-        long chatId = message.getChatId();
         try {
             switch (command) {
                 case "/create_action" ->
@@ -91,14 +109,20 @@ public class ArchivistBot implements SpringLongPollingBot, LongPollingSingleThre
                 case "/remove_action" ->
                     actionService.removeAction(chatId, text);
                 default ->
-                    replyError(message.getChatId(), "Not a valid command");
+                    replyError(chatId, "Not a valid command");
             }
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }
     }
 
+    /**
+      * Use {@code telegramClient} to reply with error
+      * @param chatId Chat identifier
+      * @param error Error text
+      */
     private void replyError(long chatId, String error) throws TelegramApiException {
+        // TODO: move to ReplyService
         MessageResponder responder = MessageResponderFactory.getResponder(
                 telegramClient, chatId, ResponseType.ERROR);
         responder.execute();
@@ -110,11 +134,22 @@ public class ArchivistBot implements SpringLongPollingBot, LongPollingSingleThre
         return this;
     }
 
+    /**
+      * Checks whether {@code chatId} is in the list of allowed chats, defined by enviromental variable.
+      * @param chatId Chat identifier
+      * @return Whether env variabl has chatId in it
+      */
     private boolean isChatAllowed(long chatId) {
         return System.getenv("tgChatId").contains(String.valueOf(chatId));
     }
 
+    /**
+      * Determines response type based on the text provided.
+      * @param text Recieved text
+      * @return response type
+      */
     private ResponseType getResponseType(String text) {
+        // TODO: update logic for actions, move to ReplyService
         if (text.contains("img")) {
             return ResponseType.IMAGE;
         } else if (text.length() < 3) {

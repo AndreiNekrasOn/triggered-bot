@@ -10,12 +10,21 @@ import jakarta.persistence.Table;
 @Table(name="actions")
 public class Action {
 
+    /** Action unique identifier */
     @Id
     @GeneratedValue(strategy=GenerationType.AUTO)
     Long id;
+
+    /** Id of the chat where the action is registered */
     Long chatId;
+
+    /** Action type: {@code "image"} or {@code "text"} */
     String type;
+
+    /** Resource path, by filename or by directory */
     String resource;
+
+    /** Pattern that triggers action. Can be either regex or cron-format datetime */
     String pattern;
 
     public Action() {}
