@@ -14,7 +14,7 @@ public abstract class MessageResponder {
     ResponseType rt;
     Object response;
 
-    Logger logger = LoggerFactory.getLogger(MessageResponder.class);
+    private static final Logger logger = LoggerFactory.getLogger(MessageResponder.class);
 
     public MessageResponder(TelegramClient tc, long chatId, ResponseType rt) {
         this.tc = tc;

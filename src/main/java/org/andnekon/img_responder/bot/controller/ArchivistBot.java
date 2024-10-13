@@ -1,6 +1,6 @@
 package org.andnekon.img_responder.bot;
 
-import org.andnekon.img_responder.bot.service.ActionService;
+import org.andnekon.img_responder.bot.service.action.ActionService;
 import org.andnekon.img_responder.bot.service.response.MessageResponder;
 import org.andnekon.img_responder.bot.service.response.MessageResponderFactory;
 import org.andnekon.img_responder.bot.service.response.ResponseType;
@@ -78,14 +78,16 @@ public class ArchivistBot implements SpringLongPollingBot, LongPollingSingleThre
     }
 
     private void processCommand(Message message) {
-        String text = message.getText();
+        String[] commandText = message.getText().split(" ", 2);
+        String command = commandText[0];
+        String text = commandText.length > 1 ? commandText[1] : "";
         long chatId = message.getChatId();
         try {
-            switch (message.getText()) {
+            switch (command) {
                 case "/create_action" ->
                     actionService.createAction(chatId, text);
                 case "/list_actions" ->
-                    actionService.listActions(chatId, text);
+                    actionService.listActions(chatId);
                 case "/remove_action" ->
                     actionService.removeAction(chatId, text);
                 default ->
@@ -109,7 +111,7 @@ public class ArchivistBot implements SpringLongPollingBot, LongPollingSingleThre
     }
 
     private boolean isChatAllowed(long chatId) {
-        return String.valueOf(chatId).equals(System.getenv("tgChatId"));
+        return System.getenv("tgChatId").contains(String.valueOf(chatId));
     }
 
     private ResponseType getResponseType(String text) {
