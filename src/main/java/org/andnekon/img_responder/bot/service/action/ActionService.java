@@ -61,6 +61,16 @@ public class ActionService {
       * @param text Text, passed with the command
       */
     public void removeAction(long chatId, String text) {
+        try {
+            Long actionId = Long.parseLong(text);
+            List<Action> actions = actionRepository.findByIdAndChatId(actionId, chatId);
+            actionRepository.deleteAll(actions);
+        } catch (NumberFormatException e) {
+            logger.info(String.format("[chat: %d] /remove_action Couldn't parse id: %s", text));
+        } catch (Exception e) {
+            logger.info(String.format("[chat: %d] /remove_action actionRepository errored %s", text));
+            e.printStackTrace();
+        }
 
     }
 

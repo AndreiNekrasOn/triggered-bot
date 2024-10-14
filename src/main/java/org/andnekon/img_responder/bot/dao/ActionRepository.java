@@ -7,4 +7,5 @@ import org.springframework.data.repository.CrudRepository;
 
 public interface ActionRepository extends CrudRepository<Action, Long> {
     List<Action> findByChatId(long chatId);
+    List<Action> findByIdAndChatId(long id, long chatId);
 }
