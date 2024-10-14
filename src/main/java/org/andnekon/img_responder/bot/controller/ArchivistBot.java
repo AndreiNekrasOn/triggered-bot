@@ -7,6 +7,7 @@ import org.andnekon.img_responder.bot.service.response.ResponseType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.client.okhttp.OkHttpTelegramClient;
 import org.telegram.telegrambots.longpolling.interfaces.LongPollingUpdateConsumer;
@@ -22,15 +23,19 @@ public class ArchivistBot implements SpringLongPollingBot, LongPollingSingleThre
 
     private final TelegramClient telegramClient;
 
-    private static final String AUTH_TOKEN_ENV = "tgAuthToken";
+    private final String botToken;
+
+    private final String allowedChats;
 
     private static final Logger logger = LoggerFactory.getLogger(ArchivistBot.class);
 
     @Autowired
     private ActionService actionService;
 
-    public ArchivistBot() {
-        telegramClient = new OkHttpTelegramClient(getBotToken());
+    public ArchivistBot(@Value("${tgAuthToken}") String botToken, @Value("${tgChatId}") String allowedChats) {
+        this.botToken = botToken;
+        this.allowedChats = allowedChats;
+        this.telegramClient = new OkHttpTelegramClient(getBotToken());
     }
 
     /**
@@ -51,7 +56,7 @@ public class ArchivistBot implements SpringLongPollingBot, LongPollingSingleThre
 
     @Override
     public String getBotToken() {
-        return System.getenv(AUTH_TOKEN_ENV);
+        return botToken;
     }
 
     @Override
@@ -140,7 +145,7 @@ public class ArchivistBot implements SpringLongPollingBot, LongPollingSingleThre
       * @return Whether env variabl has chatId in it
       */
     private boolean isChatAllowed(long chatId) {
-        return System.getenv("tgChatId").contains(String.valueOf(chatId));
+        return allowedChats.contains(String.valueOf(chatId));
     }
 
     /**
