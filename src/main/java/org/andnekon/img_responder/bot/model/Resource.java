@@ -23,4 +23,7 @@ public class Resource {
 
     /** Total size occupied by the resource */
     long size;
+
+    public Resource() {
+    }
 }

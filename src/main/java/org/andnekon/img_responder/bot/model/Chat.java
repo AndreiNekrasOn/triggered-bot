@@ -1,6 +1,6 @@
 package org.andnekon.img_responder.bot.model;
 
-import java.sql.Date;
+import java.time.LocalDate;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -15,8 +15,29 @@ public class Chat {
     Long id;
 
     /** Date when chat was added to authenticated list */
-    Date authFrom;
+    LocalDate authFrom;
 
     /** Date when chat stops being authenticated */
-    Date authTo;
+    LocalDate authTo;
+
+    public Chat() {
+    }
+
+    public Chat(Long id, LocalDate today, LocalDate monthAfter) {
+        this.id = id;
+        this.authFrom = today;
+        this.authTo = monthAfter;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public LocalDate getAuthFrom() {
+        return authFrom;
+    }
+
+    public LocalDate getAuthTo() {
+        return authTo;
+    }
 }
