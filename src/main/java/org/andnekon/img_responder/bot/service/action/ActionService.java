@@ -6,16 +6,22 @@ import java.util.Map;
 
 import org.andnekon.img_responder.bot.dao.ActionRepository;
 import org.andnekon.img_responder.bot.model.Action;
+import org.andnekon.img_responder.bot.service.resource.ResourceService;
+import org.andnekon.img_responder.utils.TgUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.telegram.telegrambots.meta.api.objects.message.Message;
 
 @Service
 public class ActionService {
 
     @Autowired
     ActionRepository actionRepository;
+
+    @Autowired
+    ResourceService resourceService;
 
     @Autowired
     ActionCreateValidator actionCreateValidator;
@@ -26,19 +32,28 @@ public class ActionService {
       * Validates and registers action to the chatId
       * and stores the passed attachment in the file system if possible.
       * @param chatId Id of the chat
-      * @param text Message passed with the command
+      * @param message Message passed with the command
       */
-    public void createAction(long chatId, String text) {
-        Action action = parseCreationText(text);
+    public void createAction(long chatId, Message message) {
+        String messageText = TgUtils.getMessageText(message).orElse("");
+        Action action = parseCreationText(messageText);
         action.setChatId(chatId);
         var errors = actionCreateValidator.validateObject(action);
         if (errors.getErrorCount() != 0) {
-            logger.info(String.format("[chat %d] /create_action text has errors: %s",
-                        chatId, errors.toString()));
+            logger.info("[chat {}] /create_action text has errors: {}",
+                    chatId, errors.toString());
             return;
         }
+        if ("image".equals(action.getType()) && !message.hasDocument()) {
+            logger.info("[chat {}] /create_action with TYPE=image must have an attachment",
+                    chatId);
+            return;
+        } else {
+            resourceService.saveFile(chatId, message.getDocument());
+        }
         actionRepository.save(action);
-        logger.info(String.format("[chat %d] Actino saved", chatId));
+
+        logger.info("[chat {}] Actino saved", chatId);
     }
 
     /**
@@ -47,7 +62,7 @@ public class ActionService {
       */
     public List<Action> listActions(long chatId) {
         List<Action> actions = actionRepository.findByChatId(chatId);
-        logger.info(String.format("[chat: %d] Actions size: %d", chatId, actions.size()));
+        logger.info("[chat: {}] Actions size: {}", chatId, actions.size());
         for (var action: actions) {
             logger.info(action.toString());
         }
@@ -66,9 +81,9 @@ public class ActionService {
             List<Action> actions = actionRepository.findByIdAndChatId(actionId, chatId);
             actionRepository.deleteAll(actions);
         } catch (NumberFormatException e) {
-            logger.info(String.format("[chat: %d] /remove_action Couldn't parse id: %s", text));
+            logger.info("[chat: {}] /remove_action Couldn't parse id: {}", text);
         } catch (Exception e) {
-            logger.info(String.format("[chat: %d] /remove_action actionRepository errored %s", text));
+            logger.info("[chat: {}] /remove_action actionRepository errored {}", text);
             e.printStackTrace();
         }
 
@@ -106,3 +121,4 @@ public class ActionService {
         return action;
     }
 }
+

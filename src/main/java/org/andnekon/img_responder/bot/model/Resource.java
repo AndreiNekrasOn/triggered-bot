@@ -26,4 +26,20 @@ public class Resource {
 
     public Resource() {
     }
+
+    public Long getId() {
+        return id;
+    }
+
+    public Long getChatId() {
+        return chatId;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public long getSize() {
+        return size;
+    }
 }

@@ -1,9 +1,14 @@
 package org.andnekon.img_responder.bot.controller;
 
+import java.util.List;
+
+import org.andnekon.img_responder.bot.model.Chat;
 import org.andnekon.img_responder.bot.service.action.ActionService;
 import org.andnekon.img_responder.bot.service.chat.ChatService;
 import org.andnekon.img_responder.bot.service.reply.ReplyService;
 import org.andnekon.img_responder.bot.service.reply.ReplyType;
+import org.andnekon.img_responder.utils.StringUtils;
+import org.andnekon.img_responder.utils.TgUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,21 +81,44 @@ public class ArchivistBot implements SpringLongPollingBot, LongPollingSingleThre
 
     @Override
     public void consume(Update update) {
-        if (update.hasMessage() && update.getMessage().hasText()) {
+        if (update.hasMessage()) {
             Message message = update.getMessage();
             long chatId = message.getChatId();
-            String messageText = message.getText();
-            if (!chatService.isChatAllowed(chatId)) {
-                log("Chat not allowed", chatId);
+            var mto = TgUtils.getMessageText(message);
+            if (mto.isEmpty()) {
+                log("Empty messageText", chatId);
                 return;
             }
-            if (message.isCommand()) {
-                log("Recieved command", message.getChatId());
-                processCommand(chatId, messageText);
+            String messageText = mto.get();
+            if (!chatService.isChatAllowed(chatId)) {
+                log("Chat not allowed", chatId);
+                List<Chat> allowedChats = chatService.listAllowedChats();
+                for (Chat chat : allowedChats) {
+                    log(chat.toString(), chatId);
+                }
+                return;
+            }
+            log(messageText, chatId);
+            if (messageText.startsWith("/")) {
+                log("Recieved command", chatId);
+                processCommand(chatId, message);
             } else {
                 processReply(chatId, messageText);
             }
+        } else {
+            logger.info("Recieved a different kind of update: {}", update.toString());
+            logger.info("{}, {}", update.hasChannelPost(), update.hasCallbackQuery());
         }
+    }
+
+    @Override
+    public LongPollingUpdateConsumer getUpdatesConsumer() {
+        return this;
+    }
+
+    @Override
+    public String getBotToken() {
+        return this.botTokenEnv;
     }
 
     /**
@@ -108,15 +136,21 @@ public class ArchivistBot implements SpringLongPollingBot, LongPollingSingleThre
     /**
       * Controller for the defined commands
       * @param chatId Chat identifier
-      * @param messageText Recieved text
+      * @param message Recieved text
       */
-    private void processCommand(long chatId, String messageText) {
-        String[] commandText = messageText.split(" ", 2);
+    private void processCommand(long chatId, Message message) {
+        var mto = TgUtils.getMessageText(message);
+        if (mto.isEmpty()) {
+            logger.error("[chatId {}], processCommand recieved emtpy message somehow", chatId);
+            return;
+        }
+        String[] commandText = mto.get().split("\\s", 2);
         String command = commandText[0];
+        log(command, chatId);
         String text = commandText.length > 1 ? commandText[1] : "";
         switch (command) {
             case "/create_action" ->
-                actionService.createAction(chatId, text);
+                actionService.createAction(chatId, message);
             case "/list_actions" ->
                 actionService.listActions(chatId);
             case "/remove_action" ->
@@ -124,16 +158,6 @@ public class ArchivistBot implements SpringLongPollingBot, LongPollingSingleThre
             default ->
                 replyService.replyError(chatId, "Not a valid command");
         }
-    }
-
-    @Override
-    public LongPollingUpdateConsumer getUpdatesConsumer() {
-        return this;
-    }
-
-    @Override
-    public String getBotToken() {
-        return this.botTokenEnv;
     }
 }
 

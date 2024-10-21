@@ -33,7 +33,6 @@ public class ReplyService {
       * @param error Error text
       */
     public void replyError(long chatId, String error) {
-        // TODO: move to ReplyService
         MessageReplier responder = MessageReplierFactory.getReplier(
                 telegramClient, chatId, ReplyType.ERROR);
         try {
@@ -41,9 +40,13 @@ public class ReplyService {
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }
-        // log(error, chatId);
     }
 
+    /**
+      * Use {@code telegramClient} to reply, depending on {@code ReplyType}
+      * @param chatId Chat identifier
+      * @param rt ReplyType
+      */
     public void reply(long chatId, ReplyType rt) {
         MessageReplier responder = MessageReplierFactory.getReplier(
                 telegramClient, chatId, rt);
