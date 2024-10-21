@@ -49,7 +49,7 @@ public class ActionService {
                     chatId);
             return;
         } else {
-            resourceService.saveFile(chatId, message.getDocument());
+            resourceService.saveFile(chatId, message.getDocument(), action.getResource());
         }
         actionRepository.save(action);
 
@@ -99,6 +99,7 @@ public class ActionService {
       * @param text Text to convert to action
       */
     Action parseCreationText(String text) {
+        // TODO: action can have simple reply, add optional MSG key
         String[] lines = text.split("\n");
         Action action = new Action();
         Map<String, String> actionLayout = new HashMap<>();

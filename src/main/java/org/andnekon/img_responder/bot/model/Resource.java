@@ -27,6 +27,11 @@ public class Resource {
     public Resource() {
     }
 
+    public Resource(Long chatId, String name) {
+        this.chatId = chatId;
+        this.name = name;
+    }
+
     public Long getId() {
         return id;
     }
@@ -41,5 +46,9 @@ public class Resource {
 
     public long getSize() {
         return size;
+    }
+
+    public void setSize(long size) {
+        this.size = size;
     }
 }
