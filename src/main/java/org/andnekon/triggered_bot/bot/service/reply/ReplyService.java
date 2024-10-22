@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.telegram.telegrambots.meta.api.methods.send.SendAnimation;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
@@ -91,15 +92,28 @@ public class ReplyService {
     private void replyImage(Action action) {
         File randomImage = resourceService.getRandomImage(action.getChatId(), action.getResource());
         InputFile photoReply = new InputFile(randomImage);
-        SendPhoto sendPhoto = SendPhoto.builder()
-            .chatId(action.getChatId())
-            .photo(photoReply)
-            .caption(action.getReply())
-            .build();
-        try {
-            telegramClient.execute(sendPhoto);
-        } catch (TelegramApiException e) {
-            e.printStackTrace();
+        if (randomImage.getName().matches(".*\\.gif")) {
+            SendAnimation sendPhoto = SendAnimation.builder()
+                .chatId(action.getChatId())
+                .animation(photoReply)
+                .caption(action.getReply())
+                .build();
+            try {
+                telegramClient.execute(sendPhoto);
+            } catch (TelegramApiException e) {
+                e.printStackTrace();
+            }
+        } else {
+            SendPhoto sendPhoto = SendPhoto.builder()
+                .chatId(action.getChatId())
+                .photo(photoReply)
+                .caption(action.getReply())
+                .build();
+            try {
+                telegramClient.execute(sendPhoto);
+            } catch (TelegramApiException e) {
+                e.printStackTrace();
+            }
         }
     }
 }

@@ -88,6 +88,8 @@ export dbPassword=your-db-password
 ```
 
 ## TODO
+- [ ] Resource size not calculated
+- [ ] Resource size re-evaluation with new files detected
 - [ ] /edit_action command
 - [ ] Cron-actions
 - [ ] Localization
