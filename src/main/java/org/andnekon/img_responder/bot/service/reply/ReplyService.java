@@ -1,6 +1,15 @@
 package org.andnekon.img_responder.bot.service.reply;
 
+import java.io.File;
+
+import org.andnekon.img_responder.bot.service.resource.ResourceService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 
@@ -8,6 +17,11 @@ import org.telegram.telegrambots.meta.generics.TelegramClient;
 public class ReplyService {
 
     private final TelegramClient telegramClient;
+
+    @Autowired
+    ResourceService resourceService;
+
+    Logger logger = LoggerFactory.getLogger(ReplyService.class);
 
     public ReplyService(TelegramClient telegramClient) {
         this.telegramClient = telegramClient;
@@ -33,13 +47,8 @@ public class ReplyService {
       * @param error Error text
       */
     public void replyError(long chatId, String error) {
-        MessageReplier responder = MessageReplierFactory.getReplier(
-                telegramClient, chatId, ReplyType.ERROR);
-        try {
-            responder.execute();
-        } catch (TelegramApiException e) {
-            e.printStackTrace();
-        }
+        // dummy
+        logger.info("[chatId {}] {}", chatId, error);
     }
 
     /**
@@ -48,13 +57,36 @@ public class ReplyService {
       * @param rt ReplyType
       */
     public void reply(long chatId, ReplyType rt) {
-        MessageReplier responder = MessageReplierFactory.getReplier(
-                telegramClient, chatId, rt);
         try {
-            responder.execute();
+            switch (rt) {
+                case IMAGE -> replyImage(chatId);
+                case TEXT -> replyText(chatId);
+                default -> {}
+            };
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }
     }
 
+    private void replyText(long chatId) throws TelegramApiException {
+        String replyText = "Hello, world!";
+        SendMessage sendMessage = SendMessage.builder()
+            .chatId(chatId)
+            .text(replyText)
+            .build();
+        telegramClient.execute(sendMessage);
+    }
+
+    private void replyImage(long chatId) throws TelegramApiException {
+        File randomImage = resourceService.getRandomImage(chatId, "data/");
+        InputFile photoReply = new InputFile(randomImage);
+        String caption = "yay!";
+        SendPhoto sendPhoto = SendPhoto.builder()
+            .chatId(chatId)
+            .photo(photoReply)
+            .caption(caption)
+            .build();
+        telegramClient.execute(sendPhoto);
+    }
 }
+

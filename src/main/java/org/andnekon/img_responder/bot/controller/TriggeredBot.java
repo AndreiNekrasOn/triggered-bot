@@ -127,7 +127,7 @@ public class TriggeredBot implements SpringLongPollingBot, LongPollingSingleThre
       */
     private void processReply(long chatId, String messageText) {
         ReplyType rt = replyService.getReplyType(messageText);
-        log("Replying with responce type %s", chatId, rt.toString());
+        logger.info("[chatId {}] Replying with type {}", chatId, rt.toString());
         replyService.reply(chatId, rt);
     }
 

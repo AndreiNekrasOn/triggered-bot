@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.telegram.telegrambots.meta.api.objects.Document;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
@@ -53,24 +54,27 @@ public class ActionService {
                     chatId);
             return;
         } else {
-            try {
-                resourceService.saveFile(chatId, message.getDocument(), action.getResource());
-            } catch (NoSuchElementException e) {
-                logger.info("[chat {}] /create_action chat not found");
-            } catch (IOException | TelegramApiException e) {
-                logger.info("[chat {}] /create_action error downloading files");
-                e.printStackTrace();
-            } catch (ChatMemoryExceededException e) {
-                logger.info("[chat {}] /create_action memory exceeded (possibly after downloading)");
-                e.printStackTrace();
-            } catch (IllegalStateException e) {
-                logger.info("[chat {}] /create_action {}", e.getMessage());
-                e.printStackTrace();
-            }
+            processSaveFile(chatId, message, action);
         }
         actionRepository.save(action);
-
         logger.info("[chat {}] Actino saved", chatId);
+    }
+
+    private void processSaveFile(long chatId, Message message, Action action) {
+        try {
+            resourceService.saveFile(chatId, message.getDocument(), action.getResource());
+        } catch (NoSuchElementException e) {
+            logger.info("[chat {}] /create_action chat not found");
+        } catch (IOException | TelegramApiException e) {
+            logger.info("[chat {}] /create_action error downloading files");
+            e.printStackTrace();
+        } catch (ChatMemoryExceededException e) {
+            logger.info("[chat {}] /create_action memory exceeded (possibly after downloading)");
+            e.printStackTrace();
+        } catch (IllegalStateException e) {
+            logger.info("[chat {}] /create_action {}", e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -85,7 +89,6 @@ public class ActionService {
         }
         return actions;
     }
-
 
     /**
       * Removes action specified by action id passed in {@param text}.

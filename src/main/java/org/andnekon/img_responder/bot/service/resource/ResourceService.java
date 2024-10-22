@@ -1,6 +1,7 @@
 package org.andnekon.img_responder.bot.service.resource;
 
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -8,6 +9,7 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Random;
 
 import org.andnekon.img_responder.bot.dao.ChatRepository;
 import org.andnekon.img_responder.bot.dao.ResourceRepository;
@@ -68,20 +70,19 @@ public class ResourceService {
         if (occupied.current + doc.getFileSize() >= occupied.limit) {
             throw new ChatMemoryExceededException();
         }
-        String localFilename = isDir ?
-            String.format("./data/%d/%s/%s", chatId, dest, doc.getFileName()) :
-            String.format("./data/%d/%s", chatId, dest);
+        String userDest = String.format("./data/%d/%s", chatId, dest);
+        String localFilename = !isDir ? userDest : String.format("%s/%s", userDest, doc.getFileName());
         if (isDir && !localFilename.endsWith(".zip")) {
             throw new IllegalStateException("Resource is a directory but no zip-file provided");
         }
         downloadFile(doc, localFilename);
         if (isDir) {
-            unzip(localFilename, dest, occupied.current, occupied.limit);
+            unzip(localFilename, userDest, occupied.current, occupied.limit);
             deleteDirOrFile(new File(localFilename));
         }
-        long uploadedSize = getDirSize(new File(localFilename));
+        long uploadedSize = getResourceSize(new File(localFilename));
         if (occupied.current + uploadedSize >= occupied.limit) {
-            deleteDirOrFile(new File(dest));
+            deleteDirOrFile(new File(userDest));
             throw new ChatMemoryExceededException();
         }
         Resource updated = resourceRepository.findByChatIdAndName(chatId, dest)
@@ -90,6 +91,22 @@ public class ResourceService {
         resourceRepository.save(updated);
         logger.info("[chat {}] downlowded document {} of size {} ",
                 chatId, doc.getFileName(), doc.getFileSize());
+    }
+
+    public File getRandomImage(long chatId, String resourceName) throws NoSuchElementException {
+        Resource resource = resourceRepository.findByChatIdAndName(chatId, resourceName).orElseThrow();
+        if (!resource.getName().endsWith("/")) {
+            throw new UnsupportedOperationException("Unimplemented");
+        }
+        File dir = new File(String.format("./data/%d/%s", chatId, resourceName));
+        String imageRe = ".*\\.(png|jpg|jpeg|gif|webp|svg)";
+        File[] files = dir.listFiles((FileFilter) pathname ->
+                pathname.getName().toLowerCase().matches(imageRe));
+        if (files == null) {
+            throw new NoSuchElementException("Emtpy directory");
+        }
+        Random rand = new Random();
+        return files[rand.nextInt(files.length)];
     }
 
     private Occupied getResourceUsage(long chatId) throws NoSuchElementException {
@@ -121,14 +138,16 @@ public class ResourceService {
         out.close();
     }
 
-    private long getDirSize(File dir) {
+    private long getResourceSize(File resource) {
         long size = 0;
-        for (File file : dir.listFiles()) {
+        if (!resource.isDirectory()){
+            return resource.length();
+        }
+        for (File file : resource.listFiles()) {
             if (file.isFile()) {
                 size += file.length();
-            }
-            else {
-                size += getDirSize(file);
+            } else {
+                size += getResourceSize(file);
             }
         }
         return size;
