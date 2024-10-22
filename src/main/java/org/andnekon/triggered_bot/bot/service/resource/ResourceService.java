@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Random;
@@ -50,8 +51,7 @@ public class ResourceService {
     Logger logger = LoggerFactory.getLogger(ResourceRepository.class);
 
     /**
-      * TODO: Creates chatId folder if absent<br>
-      * TODO: Check if the name is taken
+      * Checks if the name is taken
       * Checks if user with chatId has enough space<br>
       * If document is zip, extracts it<br>
       * Downloads file using telegramClient<br>
@@ -59,29 +59,30 @@ public class ResourceService {
       * @param chatId Identifier for the chat
       * @param doc Telegram document
       * @param dest Filename or directory name on the local filesystem
-     * @throws TelegramApiException
-     * @throws IOException
-     * @throws ChatMemoryExceededException
       */
     public void saveFile(long chatId, Document doc, String dest)
             throws NoSuchElementException, IOException, TelegramApiException,
                               ChatMemoryExceededException, IllegalStateException {
+        if (resourceRepository.existsByChatIdAndName(chatId, dest)) {
+            throw new IllegalStateException("Resource already exists");
+        }
         Occupied occupied = getResourceUsage(chatId);
         boolean isDir = dest.endsWith("/");
         if (occupied.current + doc.getFileSize() >= occupied.limit) {
             throw new ChatMemoryExceededException();
         }
-        String userDest = String.format("./data/%d/%s", chatId, dest);
-        String localFilename = !isDir ? userDest : String.format("%s/%s", userDest, doc.getFileName());
-        if (isDir && !localFilename.endsWith(".zip")) {
+        String userDest = getResourceFilename(chatId, dest);
+        Files.createDirectories(Paths.get(userDest));
+        String downloadFilename = !isDir ? userDest : String.format("%s/%s", userDest, doc.getFileName());
+        if (isDir && !downloadFilename.endsWith(".zip")) {
             throw new IllegalStateException("Resource is a directory but no zip-file provided");
         }
-        downloadFile(doc, localFilename);
+        downloadFile(doc, downloadFilename);
         if (isDir) {
-            unzip(localFilename, userDest, occupied.current, occupied.limit);
-            deleteDirOrFile(new File(localFilename));
+            unzip(downloadFilename, userDest, occupied.current, occupied.limit);
+            deleteDirOrFile(new File(downloadFilename));
         }
-        long uploadedSize = getResourceSize(new File(localFilename));
+        long uploadedSize = getResourceSize(new File(downloadFilename));
         if (occupied.current + uploadedSize >= occupied.limit) {
             deleteDirOrFile(new File(userDest));
             throw new ChatMemoryExceededException();
@@ -113,9 +114,11 @@ public class ResourceService {
     public void removeResource(long chatId, String name) throws NoSuchElementException {
         // check resource exists
         resourceRepository.findByChatIdAndName(chatId, name).orElseThrow();
-        // TODO: Separate function for localFilename
-        String localFilename = String.format("./data/%d/%s", chatId, name);
-        deleteDirOrFile(new File(localFilename));
+        deleteDirOrFile(new File(getResourceFilename(chatId, name)));
+    }
+
+    private String getResourceFilename(long chatId, String name) {
+        return String.format("./data/%d/%s", chatId, name);
     }
 
     private Occupied getResourceUsage(long chatId) throws NoSuchElementException {
@@ -173,6 +176,5 @@ public class ResourceService {
         }
         file.delete();
     }
-
 }
 

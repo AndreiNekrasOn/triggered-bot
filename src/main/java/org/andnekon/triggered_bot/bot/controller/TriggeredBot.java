@@ -42,7 +42,7 @@ public class TriggeredBot implements SpringLongPollingBot, LongPollingSingleThre
             @Value("${tgAuthToken}") String botToken,
             @Value("${tgChatId}") String allowedChats,
             ChatService chatService) {
-        this.allowedChatsEnv = allowedChats; // TODO: remove
+        this.allowedChatsEnv = allowedChats;
         this.botTokenEnv = botToken;
         this.chatService = chatService;
         initialize();
@@ -55,28 +55,27 @@ public class TriggeredBot implements SpringLongPollingBot, LongPollingSingleThre
             long chatId = message.getChatId();
             var mto = TgUtils.getMessageText(message);
             if (mto.isEmpty()) {
-                log("Empty messageText", chatId);
+                logger.info("[chatId {}] Emtpy messageText");
                 return;
             }
             String messageText = mto.get();
             if (!chatService.isChatAllowed(chatId)) {
-                log("Chat not allowed", chatId);
+                logger.info("[chatId {}] Chat not allowed");
                 List<Chat> allowedChats = chatService.listAllowedChats();
                 for (Chat chat : allowedChats) {
-                    log(chat.toString(), chatId);
+                    logger.info("[chatId {}] {}", chat.toString());
                 }
                 return;
             }
-            log(messageText, chatId);
+            logger.info("[chatId {}] {}", messageText);
             if (messageText.startsWith("/")) {
-                log("Recieved command", chatId);
+                logger.info("[chatId {}] Recieved command");
                 processCommand(chatId, message);
             } else {
                 processReply(chatId, messageText);
             }
         } else {
             logger.info("Recieved a different kind of update: {}", update.toString());
-            logger.info("{}, {}", update.hasChannelPost(), update.hasCallbackQuery());
         }
     }
 
@@ -88,22 +87,6 @@ public class TriggeredBot implements SpringLongPollingBot, LongPollingSingleThre
     @Override
     public String getBotToken() {
         return this.botTokenEnv;
-    }
-
-    /**
-      * Structured logging, prepends chatId.
-      * @param format Format string
-      * @param chatId Chat identifier
-      * @param args Remaining arguments for {@code String.format}
-      */
-    void log(String format, long chatId, Object... args) {
-        // TODO: move to utils
-        format = "[chat %d] " + format;
-        if (args.length == 0) {
-            logger.info(String.format(format, chatId));
-        } else {
-            logger.info(String.format(format, chatId, args));
-        }
     }
 
     /**
@@ -144,7 +127,7 @@ public class TriggeredBot implements SpringLongPollingBot, LongPollingSingleThre
         }
         String[] commandText = mto.get().split("\\s", 2);
         String command = commandText[0];
-        log(command, chatId);
+        logger.info("[chatId {}] {}", chatId, command);
         String text = commandText.length > 1 ? commandText[1] : "";
         switch (command) {
             case "/create_action" -> processCreateAction(chatId, message);
