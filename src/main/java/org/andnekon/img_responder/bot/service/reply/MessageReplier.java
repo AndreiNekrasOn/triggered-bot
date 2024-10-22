@@ -9,20 +9,19 @@ import org.telegram.telegrambots.meta.generics.TelegramClient;
 
 public abstract class MessageReplier {
 
+    private static final Logger logger = LoggerFactory.getLogger(MessageReplier.class);
+
     TelegramClient tc;
     long chatId;
     ReplyType rt;
-    Object response;
 
-    private static final Logger logger = LoggerFactory.getLogger(MessageReplier.class);
+    Object response;
 
     public MessageReplier(TelegramClient tc, long chatId, ReplyType rt) {
         this.tc = tc;
         this.chatId = chatId;
         this.rt = rt;
     }
-
-    abstract void prepare();
 
     public void execute() throws TelegramApiException {
         prepare();
@@ -33,5 +32,7 @@ public abstract class MessageReplier {
             tc.execute((SendPhoto) response);
         } // else do nothing, later logging
     }
+
+    abstract void prepare();
 }
 

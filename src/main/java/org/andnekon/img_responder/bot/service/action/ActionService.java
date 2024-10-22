@@ -1,11 +1,14 @@
 package org.andnekon.img_responder.bot.service.action;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 import org.andnekon.img_responder.bot.dao.ActionRepository;
 import org.andnekon.img_responder.bot.model.Action;
+import org.andnekon.img_responder.bot.service.resource.ChatMemoryExceededException;
 import org.andnekon.img_responder.bot.service.resource.ResourceService;
 import org.andnekon.img_responder.utils.TgUtils;
 import org.slf4j.Logger;
@@ -13,9 +16,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 @Service
 public class ActionService {
+
+    private static final Logger logger = LoggerFactory.getLogger(ActionService.class);
 
     @Autowired
     ActionRepository actionRepository;
@@ -25,8 +31,6 @@ public class ActionService {
 
     @Autowired
     ActionCreateValidator actionCreateValidator;
-
-    private static final Logger logger = LoggerFactory.getLogger(ActionService.class);
 
     /**
       * Validates and registers action to the chatId
@@ -49,7 +53,20 @@ public class ActionService {
                     chatId);
             return;
         } else {
-            resourceService.saveFile(chatId, message.getDocument(), action.getResource());
+            try {
+                resourceService.saveFile(chatId, message.getDocument(), action.getResource());
+            } catch (NoSuchElementException e) {
+                logger.info("[chat {}] /create_action chat not found");
+            } catch (IOException | TelegramApiException e) {
+                logger.info("[chat {}] /create_action error downloading files");
+                e.printStackTrace();
+            } catch (ChatMemoryExceededException e) {
+                logger.info("[chat {}] /create_action memory exceeded (possibly after downloading)");
+                e.printStackTrace();
+            } catch (IllegalStateException e) {
+                logger.info("[chat {}] /create_action {}", e.getMessage());
+                e.printStackTrace();
+            }
         }
         actionRepository.save(action);
 

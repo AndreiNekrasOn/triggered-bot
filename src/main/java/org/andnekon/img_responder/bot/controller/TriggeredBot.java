@@ -7,7 +7,6 @@ import org.andnekon.img_responder.bot.service.action.ActionService;
 import org.andnekon.img_responder.bot.service.chat.ChatService;
 import org.andnekon.img_responder.bot.service.reply.ReplyService;
 import org.andnekon.img_responder.bot.service.reply.ReplyType;
-import org.andnekon.img_responder.utils.StringUtils;
 import org.andnekon.img_responder.utils.TgUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,11 +22,11 @@ import org.telegram.telegrambots.meta.api.objects.message.Message;
 @Component
 public class TriggeredBot implements SpringLongPollingBot, LongPollingSingleThreadUpdateConsumer {
 
+    private static final Logger logger = LoggerFactory.getLogger(TriggeredBot.class);
+
     private final String botTokenEnv;
 
     private final String allowedChatsEnv;
-
-    private static final Logger logger = LoggerFactory.getLogger(TriggeredBot.class);
 
     @Autowired
     private ActionService actionService;
@@ -46,36 +45,6 @@ public class TriggeredBot implements SpringLongPollingBot, LongPollingSingleThre
         this.botTokenEnv = botToken;
         this.chatService = chatService;
         initialize();
-    }
-
-    /**
-      * Registers chats set up in the .env variable
-      */
-    private void initialize() {
-        String[] chatIds = allowedChatsEnv.split(";");
-        for (String chatId: chatIds) {
-            try {
-                chatService.registerChat(Long.valueOf(chatId));
-            } catch (NumberFormatException e) {
-                e.printStackTrace(); // don't fail if .env broken, for now
-            }
-        }
-    }
-
-    /**
-      * Structured logging, prepends chatId.
-      * @param format Format string
-      * @param chatId Chat identifier
-      * @param args Remaining arguments for {@code String.format}
-      */
-    void log(String format, long chatId, Object... args) {
-        // TODO: move to utils
-        format = "[chat %d] " + format;
-        if (args.length == 0) {
-            logger.info(String.format(format, chatId));
-        } else {
-            logger.info(String.format(format, chatId, args));
-        }
     }
 
     @Override
@@ -118,6 +87,36 @@ public class TriggeredBot implements SpringLongPollingBot, LongPollingSingleThre
     @Override
     public String getBotToken() {
         return this.botTokenEnv;
+    }
+
+    /**
+      * Structured logging, prepends chatId.
+      * @param format Format string
+      * @param chatId Chat identifier
+      * @param args Remaining arguments for {@code String.format}
+      */
+    void log(String format, long chatId, Object... args) {
+        // TODO: move to utils
+        format = "[chat %d] " + format;
+        if (args.length == 0) {
+            logger.info(String.format(format, chatId));
+        } else {
+            logger.info(String.format(format, chatId, args));
+        }
+    }
+
+    /**
+      * Registers chats set up in the .env variable
+      */
+    private void initialize() {
+        String[] chatIds = allowedChatsEnv.split(";");
+        for (String chatId: chatIds) {
+            try {
+                chatService.registerChat(Long.valueOf(chatId));
+            } catch (NumberFormatException e) {
+                e.printStackTrace(); // don't fail if .env broken, for now
+            }
+        }
     }
 
     /**

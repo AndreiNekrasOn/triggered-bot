@@ -21,7 +21,6 @@ public class ImageReplier extends MessageReplier {
         }
         InputFile photoReply = null; // TODO: read
         String caption = "yay!";
-        // TODO Auto-generated method stub
         SendPhoto sendPhoto = SendPhoto.builder()
             .chatId(chatId)
             .photo(photoReply)

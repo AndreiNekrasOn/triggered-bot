@@ -7,7 +7,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.util.List;
-import java.util.Optional;
+import java.util.NoSuchElementException;
 
 import org.andnekon.img_responder.bot.dao.ChatRepository;
 import org.andnekon.img_responder.bot.dao.ResourceRepository;
@@ -23,10 +23,18 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
 
 import net.lingala.zip4j.ZipFile;
-import net.lingala.zip4j.exception.ZipException;
 
 @Service
 public class ResourceService {
+
+    class Occupied {
+        long current;
+        long limit;
+        public Occupied(long current, long limit) {
+            this.current = current;
+            this.limit = limit;
+        }
+    }
 
     @Autowired
     ResourceRepository resourceRepository;
@@ -40,73 +48,56 @@ public class ResourceService {
     Logger logger = LoggerFactory.getLogger(ResourceRepository.class);
 
     /**
-      * TODO: needs refactoring, e.g. split processing file and directory<br>
       * TODO: Creates chatId folder if absent<br>
       * Checks if user with chatId has enough space<br>
       * If document is zip, extracts it<br>
       * Downloads file using telegramClient<br>
       * If not enough space for chatId, cleans up<br>
       * @param chatId Identifier for the chat
-      * @param document Telegram document
-      * @param destination Filename or directory name on the local filesystem
+      * @param doc Telegram document
+      * @param dest Filename or directory name on the local filesystem
+     * @throws TelegramApiException
+     * @throws IOException
+     * @throws ChatMemoryExceededException
       */
-    public void saveFile(long chatId, Document document, String destination) {
-        Optional<Chat> chatOpt = chatRepository.findById(chatId);
-        if (chatOpt.isEmpty()) {
-            return; // maybe throw here
+    public void saveFile(long chatId, Document doc, String dest)
+            throws NoSuchElementException, IOException, TelegramApiException,
+                              ChatMemoryExceededException, IllegalStateException {
+        Occupied occupied = getResourceUsage(chatId);
+        boolean isDir = dest.endsWith("/");
+        if (occupied.current + doc.getFileSize() >= occupied.limit) {
+            throw new ChatMemoryExceededException();
         }
-        Chat chat = chatOpt.get();
+        String localFilename = isDir ?
+            String.format("./data/%d/%s/%s", chatId, dest, doc.getFileName()) :
+            String.format("./data/%d/%s", chatId, dest);
+        if (isDir && !localFilename.endsWith(".zip")) {
+            throw new IllegalStateException("Resource is a directory but no zip-file provided");
+        }
+        downloadFile(doc, localFilename);
+        if (isDir) {
+            unzip(localFilename, dest, occupied.current, occupied.limit);
+            deleteDirOrFile(new File(localFilename));
+        }
+        long uploadedSize = getDirSize(new File(localFilename));
+        if (occupied.current + uploadedSize >= occupied.limit) {
+            deleteDirOrFile(new File(dest));
+            throw new ChatMemoryExceededException();
+        }
+        Resource updated = resourceRepository.findByChatIdAndName(chatId, dest)
+            .orElse(new Resource(chatId, dest));
+        updated.setSize(uploadedSize);
+        resourceRepository.save(updated);
+        logger.info("[chat {}] downlowded document {} of size {} ",
+                chatId, doc.getFileName(), doc.getFileSize());
+    }
 
+    private Occupied getResourceUsage(long chatId) throws NoSuchElementException {
+        Chat chat = chatRepository.findById(chatId).orElseThrow();
         List<Resource> resources = resourceRepository.findAllByChatId(chatId);
         long totalSize = resources.stream().mapToLong(Resource::getSize).sum();
         long limitSize = chat.getMemLimit();
-        boolean isDir = destination.endsWith("/");
-
-        if (totalSize + document.getFileSize() >= limitSize) {
-            logger.info("[chat {}] exceeded download limit");
-            return;
-        }
-
-        // downloads file/zip archive
-        String localFilename = isDir ? String.format("./data/%s/%s/%s",String.valueOf(chatId), destination, document.getFileName()) :
-            String.format("./data/%s/%s", String.valueOf(chatId), destination);
-        if (isDir && !localFilename.endsWith(".zip")) {
-            logger.info("[chat {}] recource is directory but no zip provided");
-            return;
-        }
-
-        try {
-            downloadFile(document, localFilename);
-        } catch (IOException | TelegramApiException e) {
-            e.printStackTrace();
-        }
-
-        if (isDir) {
-            unzip(localFilename, destination, totalSize, limitSize);
-            deleteFile(localFilename);
-        }
-
-        long uploadedSize = getDirSize(new File(localFilename));
-        if (totalSize + uploadedSize >= limitSize) {
-            if (isDir) {
-                deleteDir(new File(localFilename));
-            } else {
-                deleteFile(localFilename);
-            }
-            logger.info("[chat {}] exceeded memory limit after download, files deleted");
-            return;
-        }
-
-        Resource updated = resourceRepository.findByChatIdAndName(chatId, destination)
-            .orElse(new Resource(chatId, destination));
-        updated.setSize(uploadedSize);
-        resourceRepository.save(updated);
-
-        logger.info("[chat {}] downlowded document {} of size {} ",
-                chatId,
-                document.getFileName(),
-                document.getFileSize()
-                );
+        return new Occupied(totalSize, limitSize);
     }
 
     private void unzip(String source, String dst, long totalSize, long limitSize) {
@@ -130,14 +121,6 @@ public class ResourceService {
         out.close();
     }
 
-    private void deleteFile(String name) {
-        try {
-            Files.deleteIfExists(new File(name).toPath());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
     private long getDirSize(File dir) {
         long size = 0;
         for (File file : dir.listFiles()) {
@@ -152,12 +135,12 @@ public class ResourceService {
     }
 
     // https://stackoverflow.com/a/29175213/9817178
-    private void deleteDir(File file) {
+    private void deleteDirOrFile(File file) {
         File[] contents = file.listFiles();
         if (contents != null) {
             for (File f : contents) {
                 if (!Files.isSymbolicLink(f.toPath())) {
-                    deleteDir(f);
+                    deleteDirOrFile(f);
                 }
             }
         }
