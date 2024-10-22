@@ -10,6 +10,7 @@ import org.andnekon.img_responder.bot.dao.ActionRepository;
 import org.andnekon.img_responder.bot.model.Action;
 import org.andnekon.img_responder.bot.service.resource.ChatMemoryExceededException;
 import org.andnekon.img_responder.bot.service.resource.ResourceService;
+import org.andnekon.img_responder.utils.StringUtils;
 import org.andnekon.img_responder.utils.TgUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,44 +38,23 @@ public class ActionService {
       * and stores the passed attachment in the file system if possible.
       * @param chatId Id of the chat
       * @param message Message passed with the command
+     * @throws ActionCommandError
       */
-    public void createAction(long chatId, Message message) {
+    public void createAction(long chatId, Message message) throws ActionCommandError {
         String messageText = TgUtils.getMessageText(message).orElse("");
         Action action = parseCreationText(messageText);
         action.setChatId(chatId);
         var errors = actionCreateValidator.validateObject(action);
         if (errors.getErrorCount() != 0) {
-            logger.info("[chat {}] /create_action text has errors: {}",
-                    chatId, errors.toString());
-            return;
+            throw new ActionCommandError("/create_action command has invalid format");
         }
         if (action.hasImage() && !message.hasDocument()) {
-            logger.info("[chat {}] /create_action with TYPE=image must have an attachment",
-                    chatId);
-            return;
+            throw new ActionCommandError("/create_action Actions with resources must have an attachment");
         } else if (action.hasImage()) {
             processSaveFile(chatId, message, action);
         }
         actionRepository.save(action);
         logger.info("[chat {}] Action saved", chatId);
-    }
-
-
-    private void processSaveFile(long chatId, Message message, Action action) {
-        try {
-            resourceService.saveFile(chatId, message.getDocument(), action.getResource());
-        } catch (NoSuchElementException e) {
-            logger.info("[chat {}] /create_action chat not found");
-        } catch (IOException | TelegramApiException e) {
-            logger.info("[chat {}] /create_action error downloading files");
-            e.printStackTrace();
-        } catch (ChatMemoryExceededException e) {
-            logger.info("[chat {}] /create_action memory exceeded (possibly after downloading)");
-            e.printStackTrace();
-        } catch (IllegalStateException e) {
-            logger.info("[chat {}] /create_action {}", e.getMessage());
-            e.printStackTrace();
-        }
     }
 
     /**
@@ -93,20 +73,16 @@ public class ActionService {
     /**
       * Removes action specified by action id passed in {@param text}.
       * @param chatId Id of the chat
-      * @param text Text, passed with the command
+      * @param actionId Text, passed with the command
       */
-    public void removeAction(long chatId, String text) {
-        try {
-            Long actionId = Long.parseLong(text);
-            List<Action> actions = actionRepository.findByIdAndChatId(actionId, chatId);
-            actionRepository.deleteAll(actions);
-        } catch (NumberFormatException e) {
-            logger.info("[chat: {}] /remove_action Couldn't parse id: {}", text);
-        } catch (Exception e) {
-            logger.info("[chat: {}] /remove_action actionRepository errored {}", text);
-            e.printStackTrace();
+    public void removeAction(long chatId, long actionId) {
+        List<Action> actions = actionRepository.findByIdAndChatId(actionId, chatId);
+        for (Action action : actions) {
+            if (!StringUtils.isEmtpy(action.getResource())) {
+                resourceService.removeResource(chatId, action.getResource());
+            }
         }
-
+        actionRepository.deleteAll(actions);
     }
 
     /**
@@ -118,7 +94,7 @@ public class ActionService {
       * </ul>
       * @param text Text to convert to action
       */
-    Action parseCreationText(String text) {
+    private Action parseCreationText(String text) {
         String[] lines = text.split("\n");
         Action action = new Action();
         Map<String, String> actionLayout = new HashMap<>();
@@ -142,6 +118,27 @@ public class ActionService {
             action.setReply(actionLayout.get("REPLY"));
         }
         return action;
+    }
+
+    private void processSaveFile(long chatId, Message message, Action action) throws ActionCommandError {
+        try {
+            resourceService.saveFile(chatId, message.getDocument(), action.getResource());
+        } catch (NoSuchElementException e) {
+            logger.info("[chat {}] /create_action chat not found");
+            throw new ActionCommandError("/create_action chat not found");
+        } catch (IOException | TelegramApiException e) {
+            logger.info("[chat {}] /create_action error downloading files");
+            e.printStackTrace();
+            throw new ActionCommandError("/create_action error downloading files");
+        } catch (ChatMemoryExceededException e) {
+            logger.info("[chat {}] /create_action memory exceeded (possibly after downloading)");
+            e.printStackTrace();
+            throw new ActionCommandError("/create_action memory exceeded");
+        } catch (IllegalStateException e) {
+            logger.info("[chat {}] /create_action {}", e.getMessage());
+            e.printStackTrace();
+            throw new ActionCommandError(e.getMessage());
+        }
     }
 }
 

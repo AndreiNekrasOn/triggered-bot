@@ -51,6 +51,7 @@ public class ResourceService {
 
     /**
       * TODO: Creates chatId folder if absent<br>
+      * TODO: Check if the name is taken
       * Checks if user with chatId has enough space<br>
       * If document is zip, extracts it<br>
       * Downloads file using telegramClient<br>
@@ -107,6 +108,14 @@ public class ResourceService {
         }
         Random rand = new Random();
         return files[rand.nextInt(files.length)];
+    }
+
+    public void removeResource(long chatId, String name) throws NoSuchElementException {
+        // check resource exists
+        resourceRepository.findByChatIdAndName(chatId, name).orElseThrow();
+        // TODO: Separate function for localFilename
+        String localFilename = String.format("./data/%d/%s", chatId, name);
+        deleteDirOrFile(new File(localFilename));
     }
 
     private Occupied getResourceUsage(long chatId) throws NoSuchElementException {

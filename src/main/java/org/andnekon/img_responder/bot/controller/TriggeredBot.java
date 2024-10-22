@@ -2,7 +2,9 @@ package org.andnekon.img_responder.bot.controller;
 
 import java.util.List;
 
+import org.andnekon.img_responder.bot.model.Action;
 import org.andnekon.img_responder.bot.model.Chat;
+import org.andnekon.img_responder.bot.service.action.ActionCommandError;
 import org.andnekon.img_responder.bot.service.action.ActionService;
 import org.andnekon.img_responder.bot.service.chat.ChatService;
 import org.andnekon.img_responder.bot.service.reply.ReplyService;
@@ -145,14 +147,44 @@ public class TriggeredBot implements SpringLongPollingBot, LongPollingSingleThre
         log(command, chatId);
         String text = commandText.length > 1 ? commandText[1] : "";
         switch (command) {
-            case "/create_action" ->
-                actionService.createAction(chatId, message);
-            case "/list_actions" ->
-                actionService.listActions(chatId);
-            case "/remove_action" ->
-                actionService.removeAction(chatId, text);
-            default ->
-                replyService.replyError(chatId, "Not a valid command");
+            case "/create_action" -> processCreateAction(chatId, message);
+            case "/list_actions" -> processListActions(chatId);
+            case "/remove_action" -> processRemoveAction(chatId, text);
+            default -> replyService.replyError(chatId, "Not a valid command");
+        }
+    }
+
+    private void processCreateAction(long chatId, Message message) {
+        try {
+            actionService.createAction(chatId, message);
+        } catch (ActionCommandError e) {
+            replyService.replyError(chatId, e.getMessage());
+        }
+    }
+
+    private void processListActions(long chatId) {
+        List<Action> actions = actionService.listActions(chatId);
+        StringBuilder message = new StringBuilder("Actions:\n");
+        for (Action action: actions) {
+            message.append(action.toString());
+            message.append("\n");
+        }
+        replyService.replyText(chatId, message.toString());
+    }
+
+    public void processRemoveAction(long chatId, String text) {
+        long actionId;
+        try {
+            actionId = Long.parseLong(text);
+        } catch (NumberFormatException e) {
+            replyService.replyError(chatId, "/remove_action command must have an actionId (long)");
+            return;
+        }
+        try {
+            actionService.removeAction(chatId, actionId);
+        } catch (Exception e) {
+            replyService.replyError(chatId, "Couldn't remove action");
+            e.printStackTrace();
         }
     }
 }

@@ -12,4 +12,5 @@ public interface ResourceRepository extends CrudRepository<Resource, Long> {
 
     List<Resource> findAllByChatId(long chatId);
     Optional<Resource> findByChatIdAndName(long chatId, String name);
+    List<Resource> findAllByChatIdAndName(long chatId, String name);
 }

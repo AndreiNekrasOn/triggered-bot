@@ -40,42 +40,56 @@ public class ReplyService {
       * @param error Error text
       */
     public void replyError(long chatId, String error) {
-        // dummy
         logger.info("[chatId {}] {}", chatId, error);
+        SendMessage sendMessage = SendMessage.builder()
+            .chatId(chatId)
+            .text(String.format("error: %s", error))
+            .build();
+        try {
+            telegramClient.execute(sendMessage);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
+
     }
 
     /**
       * Use {@code telegramClient} to reply, depending on {@code ReplyType}
       * @param chatId Chat identifier
-      * @param messageText ReplyType
+      * @param text Recieved text
       */
-    public void reply(long chatId, String messageText) {
+    public void reply(long chatId, String text) {
         List<Action> actions = actionRepository.findAllByChatId(chatId);
         for (Action action : actions) {
-            if (!"match".equals(action.getType()) || !messageText.matches(action.getPattern())) {
+            if (!"match".equals(action.getType()) || !text.matches(action.getPattern())) {
                 continue;
             }
-            try {
-                if (action.hasImage()) {
-                    replyImage(action);
-                } else {
-                    replyText(action);
-                }
-            } catch (TelegramApiException e) {
-                e.printStackTrace();
+            if (action.hasImage()) {
+                replyImage(action);
+            } else {
+                replyText(action.getChatId(), action.getReply());
             }
         }
     }
 
-    private void replyText(Action action) throws TelegramApiException {
+    /**
+      * Use {@code telegramClient} to reply with specifed text
+      * @param chatId Chat identifier
+      * @param text Text content of the reply
+      */
+    public void replyText(long chatId, String text) {
         SendMessage sendMessage = SendMessage.builder()
-            .chatId(action.getChatId())
-            .text(action.getReply())
+            .chatId(chatId)
+            .text(text)
             .build();
-        telegramClient.execute(sendMessage);
+        try {
+            telegramClient.execute(sendMessage);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
     }
 
-    private void replyImage(Action action) throws TelegramApiException {
+    private void replyImage(Action action) {
         File randomImage = resourceService.getRandomImage(action.getChatId(), action.getResource());
         InputFile photoReply = new InputFile(randomImage);
         SendPhoto sendPhoto = SendPhoto.builder()
@@ -83,7 +97,11 @@ public class ReplyService {
             .photo(photoReply)
             .caption(action.getReply())
             .build();
-        telegramClient.execute(sendPhoto);
+        try {
+            telegramClient.execute(sendPhoto);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
     }
 }
 

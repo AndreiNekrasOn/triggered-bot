@@ -20,7 +20,7 @@ public class ActionCreateValidator implements Validator {
         ValidationUtils.rejectIfEmpty(errors, "chatId", "chatId.empty");
         ValidationUtils.rejectIfEmpty(errors, "type", "type.empty");
         Action a = (Action) target;
-        if ("match".equals(a.getType())) {
+        if ("match".equals(a.getType()) || "time".equals(a.getType())) {
             if (StringUtils.isEmtpy(a.getPattern())) {
                 errors.reject("image.trigger-empty");
             }
@@ -28,8 +28,6 @@ public class ActionCreateValidator implements Validator {
                     (StringUtils.isEmtpy(a.getResource()) || !a.getResource().endsWith("/"))) {
                 errors.reject("text.reply-and-resource-empty");
             }
-        } else if ("time".equals(a.getType())) {
-            errors.rejectValue("type", "type.time.unimplimented");
         } else {
             errors.rejectValue("type", "type.incorrect");
         }
