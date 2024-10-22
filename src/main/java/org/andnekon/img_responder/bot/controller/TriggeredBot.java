@@ -21,13 +21,13 @@ import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 
 @Component
-public class ArchivistBot implements SpringLongPollingBot, LongPollingSingleThreadUpdateConsumer {
+public class TriggeredBot implements SpringLongPollingBot, LongPollingSingleThreadUpdateConsumer {
 
     private final String botTokenEnv;
 
     private final String allowedChatsEnv;
 
-    private static final Logger logger = LoggerFactory.getLogger(ArchivistBot.class);
+    private static final Logger logger = LoggerFactory.getLogger(TriggeredBot.class);
 
     @Autowired
     private ActionService actionService;
@@ -37,9 +37,8 @@ public class ArchivistBot implements SpringLongPollingBot, LongPollingSingleThre
 
     private ChatService chatService;
 
-
     @Autowired
-    public ArchivistBot(
+    public TriggeredBot(
             @Value("${tgAuthToken}") String botToken,
             @Value("${tgChatId}") String allowedChats,
             ChatService chatService) {
