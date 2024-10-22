@@ -1,4 +1,4 @@
-package org.andnekon.img_responder.utils;
+package org.andnekon.triggered_bot.utils;
 
 public class StringUtils {
 

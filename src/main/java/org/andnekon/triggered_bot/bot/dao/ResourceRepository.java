@@ -1,9 +1,9 @@
-package org.andnekon.img_responder.bot.dao;
+package org.andnekon.triggered_bot.bot.dao;
 
 import java.util.List;
 import java.util.Optional;
 
-import org.andnekon.img_responder.bot.model.Resource;
+import org.andnekon.triggered_bot.bot.model.Resource;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 

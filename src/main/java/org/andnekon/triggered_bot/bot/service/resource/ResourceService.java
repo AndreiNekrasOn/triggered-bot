@@ -1,4 +1,4 @@
-package org.andnekon.img_responder.bot.service.resource;
+package org.andnekon.triggered_bot.bot.service.resource;
 
 import java.io.File;
 import java.io.FileFilter;
@@ -11,10 +11,10 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Random;
 
-import org.andnekon.img_responder.bot.dao.ChatRepository;
-import org.andnekon.img_responder.bot.dao.ResourceRepository;
-import org.andnekon.img_responder.bot.model.Chat;
-import org.andnekon.img_responder.bot.model.Resource;
+import org.andnekon.triggered_bot.bot.dao.ChatRepository;
+import org.andnekon.triggered_bot.bot.dao.ResourceRepository;
+import org.andnekon.triggered_bot.bot.model.Chat;
+import org.andnekon.triggered_bot.bot.model.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

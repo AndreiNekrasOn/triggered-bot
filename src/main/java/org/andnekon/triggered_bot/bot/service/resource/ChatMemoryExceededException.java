@@ -1,4 +1,4 @@
-package org.andnekon.img_responder.bot.service.resource;
+package org.andnekon.triggered_bot.bot.service.resource;
 
 /**
  * ChatMemoryExceededException

@@ -1,4 +1,4 @@
-package org.andnekon.img_responder.bot.service.chat;
+package org.andnekon.triggered_bot.bot.service.chat;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -8,8 +8,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import org.andnekon.img_responder.bot.dao.ChatRepository;
-import org.andnekon.img_responder.bot.model.Chat;
+import org.andnekon.triggered_bot.bot.dao.ChatRepository;
+import org.andnekon.triggered_bot.bot.model.Chat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

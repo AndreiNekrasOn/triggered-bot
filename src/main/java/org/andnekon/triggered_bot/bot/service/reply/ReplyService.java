@@ -1,12 +1,11 @@
-package org.andnekon.img_responder.bot.service.reply;
+package org.andnekon.triggered_bot.bot.service.reply;
 
 import java.io.File;
 import java.util.List;
 
-import org.andnekon.img_responder.bot.dao.ActionRepository;
-import org.andnekon.img_responder.bot.model.Action;
-import org.andnekon.img_responder.bot.service.resource.ResourceService;
-import org.andnekon.img_responder.utils.StringUtils;
+import org.andnekon.triggered_bot.bot.dao.ActionRepository;
+import org.andnekon.triggered_bot.bot.model.Action;
+import org.andnekon.triggered_bot.bot.service.resource.ResourceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

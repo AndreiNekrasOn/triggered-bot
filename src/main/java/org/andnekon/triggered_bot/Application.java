@@ -1,4 +1,4 @@
-package org.andnekon.img_responder;
+package org.andnekon.triggered_bot;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;

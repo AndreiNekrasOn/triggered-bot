@@ -1,14 +1,14 @@
-package org.andnekon.img_responder.bot.controller;
+package org.andnekon.triggered_bot.bot.controller;
 
 import java.util.List;
 
-import org.andnekon.img_responder.bot.model.Action;
-import org.andnekon.img_responder.bot.model.Chat;
-import org.andnekon.img_responder.bot.service.action.ActionCommandError;
-import org.andnekon.img_responder.bot.service.action.ActionService;
-import org.andnekon.img_responder.bot.service.chat.ChatService;
-import org.andnekon.img_responder.bot.service.reply.ReplyService;
-import org.andnekon.img_responder.utils.TgUtils;
+import org.andnekon.triggered_bot.bot.model.Action;
+import org.andnekon.triggered_bot.bot.model.Chat;
+import org.andnekon.triggered_bot.bot.service.action.ActionCommandError;
+import org.andnekon.triggered_bot.bot.service.action.ActionService;
+import org.andnekon.triggered_bot.bot.service.chat.ChatService;
+import org.andnekon.triggered_bot.bot.service.reply.ReplyService;
+import org.andnekon.triggered_bot.utils.TgUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -127,7 +127,7 @@ public class TriggeredBot implements SpringLongPollingBot, LongPollingSingleThre
       * @param messageText Recieved text
       */
     private void processReply(long chatId, String messageText) {
-        logger.info("[chatId {}] Replying", chatId);
+        logger.info("[chatId {}] Evaluating reply", chatId);
         replyService.reply(chatId, messageText);
     }
 

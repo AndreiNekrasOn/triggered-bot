@@ -1,4 +1,4 @@
-package org.andnekon.img_responder.bot.service.action;
+package org.andnekon.triggered_bot.bot.service.action;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -6,12 +6,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
-import org.andnekon.img_responder.bot.dao.ActionRepository;
-import org.andnekon.img_responder.bot.model.Action;
-import org.andnekon.img_responder.bot.service.resource.ChatMemoryExceededException;
-import org.andnekon.img_responder.bot.service.resource.ResourceService;
-import org.andnekon.img_responder.utils.StringUtils;
-import org.andnekon.img_responder.utils.TgUtils;
+import org.andnekon.triggered_bot.bot.dao.ActionRepository;
+import org.andnekon.triggered_bot.bot.model.Action;
+import org.andnekon.triggered_bot.bot.service.resource.ChatMemoryExceededException;
+import org.andnekon.triggered_bot.bot.service.resource.ResourceService;
+import org.andnekon.triggered_bot.utils.StringUtils;
+import org.andnekon.triggered_bot.utils.TgUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

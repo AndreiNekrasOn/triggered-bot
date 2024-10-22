@@ -1,7 +1,7 @@
-package org.andnekon.img_responder.bot.service.action;
+package org.andnekon.triggered_bot.bot.service.action;
 
-import org.andnekon.img_responder.bot.model.Action;
-import org.andnekon.img_responder.utils.StringUtils;
+import org.andnekon.triggered_bot.bot.model.Action;
+import org.andnekon.triggered_bot.utils.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
 import org.springframework.validation.ValidationUtils;

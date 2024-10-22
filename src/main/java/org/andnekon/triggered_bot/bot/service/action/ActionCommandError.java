@@ -1,4 +1,4 @@
-package org.andnekon.img_responder.bot.service.action;
+package org.andnekon.triggered_bot.bot.service.action;
 
 public class ActionCommandError extends Exception {
 

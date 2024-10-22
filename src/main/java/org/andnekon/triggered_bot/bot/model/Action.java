@@ -1,6 +1,6 @@
-package org.andnekon.img_responder.bot.model;
+package org.andnekon.triggered_bot.bot.model;
 
-import org.andnekon.img_responder.utils.StringUtils;
+import org.andnekon.triggered_bot.utils.StringUtils;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;

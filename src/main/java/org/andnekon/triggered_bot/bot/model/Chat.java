@@ -1,4 +1,4 @@
-package org.andnekon.img_responder.bot.model;
+package org.andnekon.triggered_bot.bot.model;
 
 import java.time.LocalDate;
 
