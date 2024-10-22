@@ -1,8 +1,12 @@
 package org.andnekon.img_responder.bot.service.reply;
 
 import java.io.File;
+import java.util.List;
 
+import org.andnekon.img_responder.bot.dao.ActionRepository;
+import org.andnekon.img_responder.bot.model.Action;
 import org.andnekon.img_responder.bot.service.resource.ResourceService;
+import org.andnekon.img_responder.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,26 +23,15 @@ public class ReplyService {
     private final TelegramClient telegramClient;
 
     @Autowired
+    ActionRepository actionRepository;
+
+    @Autowired
     ResourceService resourceService;
 
     Logger logger = LoggerFactory.getLogger(ReplyService.class);
 
     public ReplyService(TelegramClient telegramClient) {
         this.telegramClient = telegramClient;
-    }
-
-    /**
-      * Determines response type based on the text provided.
-      * @param text Recieved text
-      * @return response type
-      */
-    public ReplyType getReplyType(String text) {
-        if (text.contains("img")) {
-            return ReplyType.IMAGE;
-        } else if (text.length() < 3) {
-            return ReplyType.TEXT;
-        }
-        return ReplyType.NONE;
     }
 
     /**
@@ -54,37 +47,41 @@ public class ReplyService {
     /**
       * Use {@code telegramClient} to reply, depending on {@code ReplyType}
       * @param chatId Chat identifier
-      * @param rt ReplyType
+      * @param messageText ReplyType
       */
-    public void reply(long chatId, ReplyType rt) {
-        try {
-            switch (rt) {
-                case IMAGE -> replyImage(chatId);
-                case TEXT -> replyText(chatId);
-                default -> {}
-            };
-        } catch (TelegramApiException e) {
-            e.printStackTrace();
+    public void reply(long chatId, String messageText) {
+        List<Action> actions = actionRepository.findAllByChatId(chatId);
+        for (Action action : actions) {
+            if (!"match".equals(action.getType()) || !messageText.matches(action.getPattern())) {
+                continue;
+            }
+            try {
+                if (action.hasImage()) {
+                    replyImage(action);
+                } else {
+                    replyText(action);
+                }
+            } catch (TelegramApiException e) {
+                e.printStackTrace();
+            }
         }
     }
 
-    private void replyText(long chatId) throws TelegramApiException {
-        String replyText = "Hello, world!";
+    private void replyText(Action action) throws TelegramApiException {
         SendMessage sendMessage = SendMessage.builder()
-            .chatId(chatId)
-            .text(replyText)
+            .chatId(action.getChatId())
+            .text(action.getReply())
             .build();
         telegramClient.execute(sendMessage);
     }
 
-    private void replyImage(long chatId) throws TelegramApiException {
-        File randomImage = resourceService.getRandomImage(chatId, "data/");
+    private void replyImage(Action action) throws TelegramApiException {
+        File randomImage = resourceService.getRandomImage(action.getChatId(), action.getResource());
         InputFile photoReply = new InputFile(randomImage);
-        String caption = "yay!";
         SendPhoto sendPhoto = SendPhoto.builder()
-            .chatId(chatId)
+            .chatId(action.getChatId())
             .photo(photoReply)
-            .caption(caption)
+            .caption(action.getReply())
             .build();
         telegramClient.execute(sendPhoto);
     }

@@ -1,5 +1,7 @@
 package org.andnekon.img_responder.bot.model;
 
+import org.andnekon.img_responder.utils.StringUtils;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -18,22 +20,37 @@ public class Action {
     /** Id of the chat where the action is registered */
     Long chatId;
 
-    /** Action type: {@code "image"} or {@code "text"} */
+    /** Action type: {@code "match"} or {@code "time"} */
     String type;
 
     /** Resource path, by filename or by directory */
     String resource;
 
-    /** Pattern that triggers action. Can be either regex or cron-format datetime */
+    /** Pattern that triggers action. Can be either regex or cron-format datetime.
+      * Determines whether to reply with image or text, based on / at the end.
+      */
     String pattern;
+
+    /** Optional caption for image or required reply for text */
+    String reply;
 
     public Action() {}
 
-    public Action(Long chatId, String type, String resource, String triggerText, String triggerCron) {
+    public Action(Long chatId, String type, String resource, String triggerText, String triggerCron, String reply) {
         this.chatId = chatId;
         this.type = type;
         this.resource = resource;
         this.pattern = triggerText;
+        this.reply = reply;
+    }
+
+    /** Checks if this action should contain corresponding image */
+    public boolean hasImage() {
+        boolean result = true;
+        result &= result && "match".equals(type);
+        result &= result && !StringUtils.isEmtpy(resource);
+        result &= result && resource.endsWith("/");
+        return result;
     }
 
     public Long getId() {
@@ -50,6 +67,10 @@ public class Action {
     }
     public String getPattern() {
         return pattern;
+    }
+
+    public String getReply() {
+        return reply;
     }
 
     public void setId(Long id) {
@@ -72,9 +93,14 @@ public class Action {
         this.pattern = triggerText;
     }
 
+    public void setReply(String reply) {
+        this.reply = reply;
+    }
+
     @Override
     public String toString() {
         return "Action [id=" + id + ", chatId=" + chatId + ", type=" + type + ", resource=" + resource + ", pattern="
-                + pattern + "]";
+                + pattern + ", reply=" + reply + "]";
     }
 }
+

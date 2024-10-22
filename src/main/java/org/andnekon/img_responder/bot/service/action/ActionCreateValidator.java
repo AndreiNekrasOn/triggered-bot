@@ -19,20 +19,17 @@ public class ActionCreateValidator implements Validator {
     public void validate(Object target, Errors errors) {
         ValidationUtils.rejectIfEmpty(errors, "chatId", "chatId.empty");
         ValidationUtils.rejectIfEmpty(errors, "type", "type.empty");
-        ValidationUtils.rejectIfEmpty(errors, "resource", "resource.empty");
         Action a = (Action) target;
-
-        if ("image".equals(a.getType())) {
+        if ("match".equals(a.getType())) {
             if (StringUtils.isEmtpy(a.getPattern())) {
                 errors.reject("image.trigger-empty");
             }
-            if (!StringUtils.isEmtpy(a.getResource()) && !a.getResource().endsWith("/")) {
-                errors.reject("image.non-dir-resource");
+            if (StringUtils.isEmtpy(a.getReply()) &&
+                    (StringUtils.isEmtpy(a.getResource()) || !a.getResource().endsWith("/"))) {
+                errors.reject("text.reply-and-resource-empty");
             }
-        } else if ("text".equals(a.getType())) {
-            if (!StringUtils.isEmtpy(a.getResource()) && a.getResource().endsWith("/")) {
-                errors.reject("text.dir-resource");
-            }
+        } else if ("time".equals(a.getType())) {
+            errors.rejectValue("type", "type.time.unimplimented");
         } else {
             errors.rejectValue("type", "type.incorrect");
         }

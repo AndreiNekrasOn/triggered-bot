@@ -8,6 +8,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ActionRepository extends CrudRepository<Action, Long> {
-    List<Action> findByChatId(long chatId);
+    List<Action> findAllByChatId(long chatId);
     List<Action> findByIdAndChatId(long id, long chatId);
 }

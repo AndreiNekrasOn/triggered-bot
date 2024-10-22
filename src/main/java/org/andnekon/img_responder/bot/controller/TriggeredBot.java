@@ -6,7 +6,6 @@ import org.andnekon.img_responder.bot.model.Chat;
 import org.andnekon.img_responder.bot.service.action.ActionService;
 import org.andnekon.img_responder.bot.service.chat.ChatService;
 import org.andnekon.img_responder.bot.service.reply.ReplyService;
-import org.andnekon.img_responder.bot.service.reply.ReplyType;
 import org.andnekon.img_responder.utils.TgUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -126,9 +125,8 @@ public class TriggeredBot implements SpringLongPollingBot, LongPollingSingleThre
       * @param messageText Recieved text
       */
     private void processReply(long chatId, String messageText) {
-        ReplyType rt = replyService.getReplyType(messageText);
-        logger.info("[chatId {}] Replying with type {}", chatId, rt.toString());
-        replyService.reply(chatId, rt);
+        logger.info("[chatId {}] Replying", chatId);
+        replyService.reply(chatId, messageText);
     }
 
     /**

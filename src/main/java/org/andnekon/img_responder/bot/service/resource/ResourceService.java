@@ -126,7 +126,6 @@ public class ResourceService {
     }
 
     private void downloadFile(Document document, String localFilename) throws IOException, TelegramApiException {
-        // TODO: create TgApiService
         GetFile getFile = new GetFile(document.getFileId());
         org.telegram.telegrambots.meta.api.objects.File file = telegramClient.execute(getFile);
         logger.info("downlowding file...: {}", file.getFilePath());

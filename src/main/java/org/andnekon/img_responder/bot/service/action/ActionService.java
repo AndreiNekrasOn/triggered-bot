@@ -15,7 +15,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.telegram.telegrambots.meta.api.objects.Document;
 import org.telegram.telegrambots.meta.api.objects.message.Message;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
@@ -49,16 +48,17 @@ public class ActionService {
                     chatId, errors.toString());
             return;
         }
-        if ("image".equals(action.getType()) && !message.hasDocument()) {
+        if (action.hasImage() && !message.hasDocument()) {
             logger.info("[chat {}] /create_action with TYPE=image must have an attachment",
                     chatId);
             return;
-        } else {
+        } else if (action.hasImage()) {
             processSaveFile(chatId, message, action);
         }
         actionRepository.save(action);
-        logger.info("[chat {}] Actino saved", chatId);
+        logger.info("[chat {}] Action saved", chatId);
     }
+
 
     private void processSaveFile(long chatId, Message message, Action action) {
         try {
@@ -82,7 +82,7 @@ public class ActionService {
       * @return List of actions registered for the chat
       */
     public List<Action> listActions(long chatId) {
-        List<Action> actions = actionRepository.findByChatId(chatId);
+        List<Action> actions = actionRepository.findAllByChatId(chatId);
         logger.info("[chat: {}] Actions size: {}", chatId, actions.size());
         for (var action: actions) {
             logger.info(action.toString());
@@ -112,14 +112,13 @@ public class ActionService {
     /**
       * Converts text passed with the /create_action command to {@code Action}.
       * Valid text format: <ul>
-      * <li> TYPE: image/text</li>
-      * <li> PATTERN: re:regex/cron:cron_datet</li>
+      * <li> TYPE: match/time</li>
+      * <li> PATTERN: regex/cron:cron_datetime</li>
       * <li> RESOURCE: filename/dirname</li>
       * </ul>
       * @param text Text to convert to action
       */
     Action parseCreationText(String text) {
-        // TODO: action can have simple reply, add optional MSG key
         String[] lines = text.split("\n");
         Action action = new Action();
         Map<String, String> actionLayout = new HashMap<>();
@@ -138,6 +137,9 @@ public class ActionService {
         }
         if (actionLayout.containsKey("RESOURCE")) {
             action.setResource(actionLayout.get("RESOURCE"));
+        }
+        if (actionLayout.containsKey("REPLY")) {
+            action.setReply(actionLayout.get("REPLY"));
         }
         return action;
     }
