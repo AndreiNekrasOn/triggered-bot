@@ -16,6 +16,7 @@ import org.andnekon.triggered_bot.bot.dao.ChatRepository;
 import org.andnekon.triggered_bot.bot.dao.ResourceRepository;
 import org.andnekon.triggered_bot.bot.model.Chat;
 import org.andnekon.triggered_bot.bot.model.Resource;
+import org.andnekon.triggered_bot.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,6 +71,9 @@ public class ResourceService {
         boolean isDir = dest.endsWith("/");
         if (occupied.current + doc.getFileSize() >= occupied.limit) {
             throw new ChatMemoryExceededException();
+        }
+        if (StringUtils.isEmtpy(dest) || !dest.matches("\\w+\\.\\w*")) {
+            throw new IllegalStateException("Invalid resource destination");
         }
         String userDest = getResourceFilename(chatId, dest);
         Files.createDirectories(Paths.get(userDest));
