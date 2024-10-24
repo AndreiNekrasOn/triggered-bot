@@ -72,7 +72,7 @@ public class ResourceService {
         if (occupied.current + doc.getFileSize() >= occupied.limit) {
             throw new ChatMemoryExceededException();
         }
-        if (StringUtils.isEmtpy(dest) || !dest.matches("\\w+\\.\\w*")) {
+        if (StringUtils.isEmtpy(dest) || !dest.matches("\\w+/")) {
             throw new IllegalStateException("Invalid resource destination");
         }
         String userDest = getResourceFilename(chatId, dest);

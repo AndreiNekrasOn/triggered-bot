@@ -1,5 +1,6 @@
 package org.andnekon.triggered_bot.bot.controller;
 
+import java.time.Instant;
 import java.util.List;
 
 import org.andnekon.triggered_bot.bot.model.Action;
@@ -29,6 +30,8 @@ public class TriggeredBot implements SpringLongPollingBot, LongPollingSingleThre
 
     private final String allowedChatsEnv;
 
+    private final long startDate;
+
     @Autowired
     private ActionService actionService;
 
@@ -45,37 +48,39 @@ public class TriggeredBot implements SpringLongPollingBot, LongPollingSingleThre
         this.allowedChatsEnv = allowedChats;
         this.botTokenEnv = botToken;
         this.chatService = chatService;
+        this.startDate = Instant.now().toEpochMilli() / 1000;
         initialize();
     }
 
     @Override
     public void consume(Update update) {
-        if (update.hasMessage()) {
+        if (update.hasMessage() && update.getMessage().getDate() >= startDate) {
             Message message = update.getMessage();
             long chatId = message.getChatId();
             var mto = TgUtils.getMessageText(message);
             if (mto.isEmpty()) {
-                logger.info("[chatId {}] Emtpy messageText");
+                logger.info("[chatId {}] Emtpy messageText", chatId);
                 return;
             }
             String messageText = mto.get();
             if (!chatService.isChatAllowed(chatId)) {
-                logger.info("[chatId {}] Chat not allowed");
+                logger.info("[chatId {}] Chat not allowed", chatId);
                 List<Chat> allowedChats = chatService.listAllowedChats();
                 for (Chat chat : allowedChats) {
-                    logger.info("[chatId {}] {}", chat.toString());
+                    logger.info("[chatId {}] {}", chatId, chat.toString());
                 }
                 return;
             }
-            logger.info("[chatId {}] {}", messageText);
+            logger.info("[chatId {}] {}", chatId, messageText);
             if (messageText.startsWith("/")) {
-                logger.info("[chatId {}] Recieved command");
+                logger.info("[chatId {}] Recieved command", chatId);
                 processCommand(chatId, message);
             } else {
                 processReply(chatId, messageText);
             }
         } else {
             logger.info("Recieved a different kind of update: {}", update.toString());
+            logger.info("message date: {}, start date: {}", update.getMessage().getDate(), startDate);
         }
     }
 
@@ -129,11 +134,14 @@ public class TriggeredBot implements SpringLongPollingBot, LongPollingSingleThre
         String command = commandText[0];
         logger.info("[chatId {}] {}", chatId, command);
         String text = commandText.length > 1 ? commandText[1] : "";
-        switch (command) {
-            case "/create_action" -> processCreateAction(chatId, message);
-            case "/list_actions" -> processListActions(chatId);
-            case "/remove_action" -> processRemoveAction(chatId, text);
-            default -> replyService.replyError(chatId, "Not a valid command");
+        if (command.contains("/create_action")) {
+            processCreateAction(chatId, message);
+        } else if (command.contains("/list_actions")) {
+            processListActions(chatId);
+        } else if (command.contains("/remove_action")) {
+            processRemoveAction(chatId, text);
+        } else {
+            replyService.replyError(chatId, "Not a valid command");
         }
     }
 
